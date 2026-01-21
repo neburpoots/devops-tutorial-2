@@ -1,0 +1,17 @@
+apiVersion: v2
+name: fastapi-gitops-starter
+description: A Helm chart for FastAPI GitOps Starter application
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+keywords:
+  - fastapi
+  - python
+  - api
+  - gitops
+home: https://github.com/QCDIS/fastapi-gitops-starter
+sources:
+  - https://github.com/QCDIS/fastapi-gitops-starter
+maintainers:
+  - name: QCDIS
+    url: https://github.com/QCDIS

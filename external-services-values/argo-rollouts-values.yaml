@@ -1,0 +1,16 @@
+dashboard:
+  enabled: true
+  ingress:
+    enabled: true
+    className: nginx
+    hosts:
+      - minikube.test
+#    paths:
+#      - /rollouts
+
+# Enable controller metrics and ServiceMonitor for Prometheus scraping
+controller:
+  metrics:
+    enabled: true
+    serviceMonitor:
+      enabled: true

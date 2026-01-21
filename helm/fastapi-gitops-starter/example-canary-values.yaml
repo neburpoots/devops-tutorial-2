@@ -1,0 +1,120 @@
+# Example values for Canary deployment with Argo Rollouts and Automated Analysis
+# Usage: helm install my-release ./helm/fastapi-gitops-starter -f example-canary-with-analysis-values.yaml
+#
+# Prerequisites:
+# - Argo Rollouts installed in the cluster
+# - Prometheus installed and accessible
+# - Nginx Ingress Controller with metrics enabled
+
+replicaCount: 1
+
+image:
+  tag: "v0.4"
+
+# Enable Argo Rollouts with Canary strategy and automated analysis
+rollout:
+  enabled: true
+  strategy: canary
+  canary:
+    # Gradual rollout in steps with pauses for validation
+    steps:
+      - setWeight: 20
+      - pause: {duration: 2m}
+      - setWeight: 50
+      - pause: {duration: 2m}
+      - setWeight: 80
+      - pause: {duration: 2m}
+      # Final step will promote to 100%
+    maxSurge: "25%"
+    maxUnavailable: 0
+
+  # Enable automated analysis based on metrics
+  analysis:
+    enabled: true
+    # Traffic generator - generates HTTP traffic during analysis to ensure metrics are available
+    trafficGenerator:
+      serviceUrl: "http://naavre-dev.minikube.test"
+      enabled: true
+      initialDelay: "1s"       # Start generating traffic after 1s
+      interval: "2s"          # Run the job every 2s
+      count: 10               # Run once (will generate traffic for duration)
+      duration: 250           # Generate traffic for 120 seconds
+      requestsPerSecond: 100    # 5 requests per second to each endpoint
+    # Prometheus configuration
+    prometheus:
+      address: "http://monitoring-kube-prometheus-prometheus.monitoring.svc.cluster.local:9090"
+
+    # Define metrics to monitor during rollout
+    metrics:
+      # Success Rate: Percentage of non-5xx responses
+      successRate:
+        enabled: true
+        interval: "10s"           # Check every 10s
+        count: 10                 # Perform 5 measurements
+        successCondition: "result[0] >= 0.95"  # Require 95% success rate
+        failureLimit: 2          # Abort after 2 failed checks
+        initialDelay: "1m"      # Wait 30s before starting analysis
+        timeRange: "10m"          # Look at last 10 minutes of data
+
+      # Response Time: Average response time in seconds
+      responseTime:
+        enabled: true
+        interval: "10s"
+        count: 10
+        successCondition: "result[0] <= 1.0"  # Max 1 second response time
+        failureLimit: 2
+        initialDelay: "1m"
+        timeRange: "10m"
+
+      # Error Rate: Percentage of 5xx responses
+      errorRate:
+        enabled: true
+        interval: "10s"
+        count: 10
+        successCondition: "result[0] <= 0.05"
+        failureLimit: 2
+        initialDelay: "1m"
+        timeRange: "10m"
+
+      # Example: Add custom metrics here
+      # custom:
+      #   cpu-usage:
+      #     interval: "1m"
+      #     count: 5
+      #     successCondition: "result <= 0.80"
+      #     failureLimit: 2
+      #     prometheus:
+      #       query: |
+      #         avg(rate(container_cpu_usage_seconds_total{
+      #           namespace="default",
+      #           pod=~"fastapi-gitops-starter-.*"
+      #         }[5m]))
+
+# Disable autoscaling when using rollouts
+autoscaling:
+  enabled: false
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 8000
+
+ingress:
+  enabled: true
+  className: "nginx"
+  hosts:
+    - host: naavre-dev.minikube.test
+      paths:
+        - path: /GitOps-Starter
+          pathType: Prefix
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+app:
+  rootPath: "/GitOps-Starter"

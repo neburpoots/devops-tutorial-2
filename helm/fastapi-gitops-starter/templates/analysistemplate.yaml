@@ -1,0 +1,233 @@
+{{- if and .Values.rollout.enabled .Values.rollout.analysis.enabled }}
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: {{ include "fastapi-gitops-starter.fullname" . }}
+  labels:
+    {{- include "fastapi-gitops-starter.labels" . | nindent 4 }}
+spec:
+  metrics:
+  {{- if .Values.rollout.analysis.trafficGenerator.enabled }}
+  - name: traffic-generator
+    {{- if .Values.rollout.analysis.trafficGenerator.initialDelay }}
+    initialDelay: {{ .Values.rollout.analysis.trafficGenerator.initialDelay }}
+    {{- end }}
+    interval: {{ .Values.rollout.analysis.trafficGenerator.interval | default "10s" }}
+    count: {{ .Values.rollout.analysis.trafficGenerator.count | default 1 }}
+    provider:
+      job:
+        spec:
+          backoffLimit: {{ .Values.rollout.analysis.trafficGenerator.backoffLimit | default 1 }}
+          template:
+            spec:
+              restartPolicy: Never
+              containers:
+              - name: traffic-generator
+                image: {{ .Values.rollout.analysis.trafficGenerator.image | default "curlimages/curl:latest" }}
+                command:
+                  - /bin/sh
+                  - -c
+                  - |
+                    {{- if .Values.rollout.analysis.trafficGenerator.script }}
+                    {{ .Values.rollout.analysis.trafficGenerator.script | nindent 20 }}
+                    {{- else }}
+                    # Generate traffic to the application endpoints
+                    SERVICE_URL="{{ .Values.rollout.analysis.trafficGenerator.serviceUrl | default (printf "http://%s.%s.svc.cluster.local:%d" (include "fastapi-gitops-starter.fullname" .) .Release.Namespace (.Values.service.port | int)) }}"
+                    ROOT_PATH="{{ .Values.app.rootPath }}"
+                    DURATION="{{ .Values.rollout.analysis.trafficGenerator.duration | default 60 }}"
+                    REQUESTS_PER_SECOND="{{ .Values.rollout.analysis.trafficGenerator.requestsPerSecond | default 10 }}"
+
+                    echo "Using SERVICE_URL: $SERVICE_URL"
+                    echo "Using ROOT_PATH: $ROOT_PATH"
+                    echo "Using DURATION: $DURATION"
+                    echo "Using REQUESTS_PER_SECOND: $REQUESTS_PER_SECOND"
+
+                    # Validate inputs
+                    if [ "$REQUESTS_PER_SECOND" -le 0 ]; then
+                      echo "Error: REQUESTS_PER_SECOND must be greater than 0"
+                      exit 1
+                    fi
+
+                    echo "Starting traffic generation to ${SERVICE_URL}${ROOT_PATH}"
+                    echo "Duration: ${DURATION}s, Requests per second: ${REQUESTS_PER_SECOND}"
+
+                    END_TIME=$(($(date +%s) + DURATION))
+                    REQUEST_COUNT=0
+
+                    while [ $(date +%s) -lt $END_TIME ]; do
+                      # Health check endpoint
+                      curl -s -o /dev/null -w "Health: %{http_code}\n" "${SERVICE_URL}${ROOT_PATH}/health" || true
+                      REQUEST_COUNT=$((REQUEST_COUNT + 1))
+
+                      # Root endpoint
+                      curl -s -o /dev/null -w "Root: %{http_code}\n" "${SERVICE_URL}${ROOT_PATH}/" || true
+                      REQUEST_COUNT=$((REQUEST_COUNT + 1))
+
+                      # List items endpoint
+                      curl -s -o /dev/null -w "Items: %{http_code}\n" "${SERVICE_URL}${ROOT_PATH}/api/items" || true
+                      REQUEST_COUNT=$((REQUEST_COUNT + 1))
+
+                      # Get specific item endpoint (random ID between 1-10)
+                      RANDOM_SEED=$(date +%s%N 2>/dev/null || date +%s)
+                      ITEM_ID=$(( (RANDOM_SEED % 10) + 1 ))
+                      curl -s -o /dev/null -w "Item ${ITEM_ID}: %{http_code}\n" "${SERVICE_URL}${ROOT_PATH}/api/items/${ITEM_ID}" || true
+                      REQUEST_COUNT=$((REQUEST_COUNT + 1))
+
+                      # Sleep between iterations to control request rate
+                      # We make 4 requests per iteration, so sleep for (4/REQUESTS_PER_SECOND) seconds
+                      # Using simple calculation: 1 second / (REQUESTS_PER_SECOND/4)
+                      if [ $REQUESTS_PER_SECOND -ge 4 ]; then
+                        # For higher rates, calculate sleep in decimal seconds
+                        SLEEP_DECIMAL=$(awk "BEGIN {printf \"%.3f\", 4.0/$REQUESTS_PER_SECOND}")
+                        sleep $SLEEP_DECIMAL
+                      else
+                        # For lower rates, use whole seconds
+                        SLEEP_SEC=$(( (4 + REQUESTS_PER_SECOND - 1) / REQUESTS_PER_SECOND ))
+                        sleep $SLEEP_SEC
+                      fi
+                    done
+
+                    echo "Traffic generation completed. Total requests: ${REQUEST_COUNT}"
+                    {{- end }}
+  {{- end }}
+  {{- if .Values.rollout.analysis.metrics.successRate.enabled }}
+  - name: success-rate
+    {{- if .Values.rollout.analysis.metrics.successRate.initialDelay }}
+    initialDelay: {{ .Values.rollout.analysis.metrics.successRate.initialDelay }}
+    {{- end }}
+    interval: {{ .Values.rollout.analysis.metrics.successRate.interval | default "1m" }}
+    count: {{ .Values.rollout.analysis.metrics.successRate.count | default 5 }}
+    successCondition: {{ .Values.rollout.analysis.metrics.successRate.successCondition | default "result >= 0.95" }}
+    failureLimit: {{ .Values.rollout.analysis.metrics.successRate.failureLimit | default 3 }}
+    provider:
+      prometheus:
+        address: {{ .Values.rollout.analysis.prometheus.address | required "rollout.analysis.prometheus.address is required when analysis is enabled" }}
+        query: |
+          {{- if .Values.rollout.analysis.metrics.successRate.query }}
+          {{ .Values.rollout.analysis.metrics.successRate.query | nindent 10 }}
+          {{- else }}
+          sum(rate(
+            nginx_ingress_controller_requests{
+              namespace="{{ .Release.Namespace }}",
+              ingress="{{ include "fastapi-gitops-starter.fullname" . }}",
+              status!~"5.."
+            }[{{ .Values.rollout.analysis.metrics.successRate.timeRange | default "5m" }}]
+          ))
+          /
+          sum(rate(
+            nginx_ingress_controller_requests{
+              namespace="{{ .Release.Namespace }}",
+              ingress="{{ include "fastapi-gitops-starter.fullname" . }}"
+            }[{{ .Values.rollout.analysis.metrics.successRate.timeRange | default "5m" }}]
+          ))
+          {{- end }}
+  {{- end }}
+  {{- if .Values.rollout.analysis.metrics.responseTime.enabled }}
+  - name: response-time
+    {{- if .Values.rollout.analysis.metrics.responseTime.initialDelay }}
+    initialDelay: {{ .Values.rollout.analysis.metrics.responseTime.initialDelay }}
+    {{- end }}
+    interval: {{ .Values.rollout.analysis.metrics.responseTime.interval | default "1m" }}
+    count: {{ .Values.rollout.analysis.metrics.responseTime.count | default 5 }}
+    successCondition: {{ .Values.rollout.analysis.metrics.responseTime.successCondition | default "result <= 1.0" }}
+    failureLimit: {{ .Values.rollout.analysis.metrics.responseTime.failureLimit | default 3 }}
+    provider:
+      prometheus:
+        address: {{ .Values.rollout.analysis.prometheus.address }}
+        query: |
+          {{- if .Values.rollout.analysis.metrics.responseTime.query }}
+          {{ .Values.rollout.analysis.metrics.responseTime.query | nindent 10 }}
+          {{- else }}
+          histogram_quantile(0.95,
+            sum(rate(
+              nginx_ingress_controller_request_duration_seconds_bucket{
+                namespace="{{ .Release.Namespace }}",
+                ingress="{{ include "fastapi-gitops-starter.fullname" . }}"
+              }[{{ .Values.rollout.analysis.metrics.responseTime.timeRange | default "5m" }}]
+            )) by (le)
+          )
+          {{- end }}
+  {{- end }}
+  {{- if .Values.rollout.analysis.metrics.errorRate.enabled }}
+  - name: error-rate
+    {{- if .Values.rollout.analysis.metrics.errorRate.initialDelay }}
+    initialDelay: {{ .Values.rollout.analysis.metrics.errorRate.initialDelay }}
+    {{- end }}
+    interval: {{ .Values.rollout.analysis.metrics.errorRate.interval | default "1m" }}
+    count: {{ .Values.rollout.analysis.metrics.errorRate.count | default 5 }}
+    successCondition: {{ .Values.rollout.analysis.metrics.errorRate.successCondition | default "result <= 0.05" }}
+    failureLimit: {{ .Values.rollout.analysis.metrics.errorRate.failureLimit | default 3 }}
+    provider:
+      prometheus:
+        address: {{ .Values.rollout.analysis.prometheus.address }}
+        query: |
+          {{- if .Values.rollout.analysis.metrics.errorRate.query }}
+          {{ .Values.rollout.analysis.metrics.errorRate.query | nindent 10 }}
+          {{- else }}
+          (
+            (sum(rate(nginx_ingress_controller_requests{namespace="{{ .Release.Namespace }}", ingress="{{ include "fastapi-gitops-starter.fullname" . }}", status=~"5.."}[{{ .Values.rollout.analysis.metrics.errorRate.timeRange | default "5m" }}])) or vector(0))
+          )
+          /
+          (
+            (sum(rate(nginx_ingress_controller_requests{namespace="{{ .Release.Namespace }}", ingress="{{ include "fastapi-gitops-starter.fullname" . }}"}[{{ .Values.rollout.analysis.metrics.errorRate.timeRange | default "5m" }}])) or vector(1))
+          )
+          {{- end }}
+  {{- end }}
+  {{- if .Values.rollout.analysis.metrics.custom }}
+  {{- range $name, $metric := .Values.rollout.analysis.metrics.custom }}
+  - name: {{ $name }}
+    {{- if $metric.initialDelay }}
+    initialDelay: {{ $metric.initialDelay }}
+    {{- end }}
+    interval: {{ $metric.interval | default "1m" }}
+    count: {{ $metric.count | default 5 }}
+    {{- if $metric.successCondition }}
+    successCondition: {{ $metric.successCondition }}
+    {{- end }}
+    {{- if $metric.failureCondition }}
+    failureCondition: {{ $metric.failureCondition }}
+    {{- end }}
+    {{- if $metric.failureLimit }}
+    failureLimit: {{ $metric.failureLimit }}
+    {{- end }}
+    {{- if $metric.inconclusiveLimit }}
+    inconclusiveLimit: {{ $metric.inconclusiveLimit }}
+    {{- end }}
+    {{- if $metric.consecutiveErrorLimit }}
+    consecutiveErrorLimit: {{ $metric.consecutiveErrorLimit }}
+    {{- end }}
+    provider:
+      {{- if $metric.prometheus }}
+      prometheus:
+        address: {{ $metric.prometheus.address | default $.Values.rollout.analysis.prometheus.address }}
+        query: |
+          {{ $metric.prometheus.query | nindent 10 }}
+      {{- else if $metric.job }}
+      job:
+        {{- toYaml $metric.job | nindent 8 }}
+      {{- else if $metric.web }}
+      web:
+        {{- toYaml $metric.web | nindent 8 }}
+      {{- else if $metric.datadog }}
+      datadog:
+        {{- toYaml $metric.datadog | nindent 8 }}
+      {{- else if $metric.wavefront }}
+      wavefront:
+        {{- toYaml $metric.wavefront | nindent 8 }}
+      {{- else if $metric.newRelic }}
+      newRelic:
+        {{- toYaml $metric.newRelic | nindent 8 }}
+      {{- else if $metric.cloudWatch }}
+      cloudWatch:
+        {{- toYaml $metric.cloudWatch | nindent 8 }}
+      {{- else if $metric.graphite }}
+      graphite:
+        {{- toYaml $metric.graphite | nindent 8 }}
+      {{- end }}
+  {{- end }}
+  {{- end }}
+  {{- if .Values.rollout.analysis.args }}
+  args:
+    {{- toYaml .Values.rollout.analysis.args | nindent 4 }}
+  {{- end }}
+{{- end }}

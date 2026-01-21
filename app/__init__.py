@@ -1,0 +1,1 @@
+"""FastAPI GitOps Starter Application."""

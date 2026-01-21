@@ -1,0 +1,23 @@
+global:
+  domain: minikube.test
+
+configs:
+  secret:
+    argocdServerAdminPassword: "$2a$10$f4euqaB7AZX41WFALuxIEu7FakyF03ir.zh48m0oVRi9B7zttHztq"
+  dex.config: |
+    connectors:
+    - type: github
+      id: github
+      name: GitHub
+      config:
+        clientID:
+        clientSecret:
+        orgs:
+        - name: QCDIS
+  ingress:
+    enabled: true
+    className: "nginx"
+    hosts:
+      - minikube.test
+    paths:
+        - /argo-cd
