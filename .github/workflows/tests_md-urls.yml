@@ -16,4 +16,4 @@ jobs:
         with:
           file_types: .md,yaml,json
           retry_count: 3
-          exclude_patterns: http://IP:NODE_PORT,http://localhost,http://xxxxxxxxx.compute-1.amazonaws.com,http://IP,http://minikube.test
+          exclude_patterns: http://IP:NODE_PORT,http://localhost,http://xxxxxxxxx.compute-1.amazonaws.com,http://IP,http://minikube.test,http://prometheus.monitoring:9090

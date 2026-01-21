@@ -26,7 +26,7 @@ This tutorial will teach you:
 #### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/QCDIS/fastapi-gitops-starter.git
+git clone https://github.com/DevOps-and-Cloud-based-Software/fastapi-gitops.git
 cd fastapi-gitops-starter
 ```
 
