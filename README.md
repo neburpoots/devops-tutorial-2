@@ -163,7 +163,8 @@ Get the Minikube IP:
 minikube ip
 ```
 Add the following line to your `/etc/hosts` file:
-```<MINIKUBE_IP> minikube.test
+```
+<MINIKUBE_IP> minikube.test
 ```
 Replace `<MINIKUBE_IP>` with the IP address obtained from the previous command.
 
