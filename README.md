@@ -232,7 +232,7 @@ including host and paths.
 1. Open `.pre-commit-config.yaml`
 2. Add a new hook to check:
    * if we try to commit large files
-   * To check yaml files for syntax errors (make sure to exclude helm chart files)
+   * To check YAML files for syntax errors (make sure to exclude helm chart files)
    * To sort imports in Python files
    * To check for security issues using
    * To make sure we do not commit secrets using
