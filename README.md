@@ -226,7 +226,7 @@ Make sure you understand how to set up the Horizontal Pod Autoscaler (HPA) for
 scaling based on load and ingress configuration for accessing the application
 including host and paths.
 
-# 3. 📚 Tutorial Exercises
+# 3. 📚 Tasks 
 
 ## Exercise 1: Add pre-commit Hooks
 1. Open `.pre-commit-config.yaml`
