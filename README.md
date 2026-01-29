@@ -1,4 +1,7 @@
-# DevOps and Cloud Based Software  
+GitOps with FastAPI
+==============
+
+***University of Amsterdam***
 
 # 1. Introduction 
 
