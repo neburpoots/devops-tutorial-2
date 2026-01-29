@@ -37,13 +37,14 @@ In this tutorial will use GitOps practices with FastAPI including CI/CD pipeline
 
 # 2. Tutorial 
 
-This tutorial will teach you:
-- Building REST APIs with FastAPI
-- Containerizing applications with Docker
-- Setting up CI/CD pipelines with GitHub Actions
-- Implementing code quality checks
-- Using pre-commit hooks for automated code validation
-- Following GitOps principles
+The steps of this tutorial are the following:
+- [Building REST APIs with FastAPI](#21-setting-up-the-project)
+- [Testing](#22-testing)
+- [Code Quality](#23-code-quality)
+- [Pre-commit Hooks](#24-pre-commit-hooks)
+- [Docker](#25-docker)
+- [Minikube Setup](#26-minikube-setup)
+- [Kubernetes Deployment with Helm](#27-kubernetes-deployment-with-helm)
 
 Prerequisites:
 - Python 3.11 or higher
@@ -51,7 +52,7 @@ Prerequisites:
 - Docker (optional, for containerization)
 - GitHub account
 
-## Getting Started
+## 2.1 Setting Up the Project
 * Clone the Repository:
    ```bash
    git clone https://github.com/DevOps-and-Cloud-based-Software/fastapi-gitops.git
@@ -88,7 +89,7 @@ Prerequisites:
   - List items: http://localhost:8000/GitOps-Starter/api/items
   - Get specific item: http://localhost:8000/GitOps-Starter/api/items/1
 
-## Testing
+## 2.2 Testing
 
 * Run Tests:
    ```bash
@@ -102,7 +103,7 @@ Prerequisites:
 
 * View the coverage report by opening `htmlcov/index.html` in your browser.
 
-##  Code Quality
+##  2.3 Code Quality
 
 * Linting with Ruff:
 
@@ -124,7 +125,7 @@ Prerequisites:
    black app/ tests/
    ```
 
-## Pre-commit Hooks
+## 2.4 Pre-commit Hooks
 
 Pre-commit hooks automatically check your code before each commit, ensuring
 consistent code quality.
@@ -155,7 +156,7 @@ consistent code quality.
   - Trailing whitespace removal
   - End of file fixer
 
-## Docker
+## 2.5 Docker
 
 * Build the Docker Image:
    ```bash
@@ -169,7 +170,7 @@ consistent code quality.
    ```
 * Access the API at http://localhost:8000/GitOps-Starter/
 
-## Minikube Setup
+## 2.6 Minikube Setup
 
 If you want to test the Kubernetes deployment locally, you can use Minikube.
 
@@ -192,7 +193,7 @@ If you want to test the Kubernetes deployment locally, you can use Minikube.
    Replace `<MINIKUBE_IP>` with the IP address obtained from the previous command.
 
 
-## Kubernetes Deployment with Helm
+## 2.7 Kubernetes Deployment with Helm
 
 This repository includes a Helm chart for deploying the application to Kubernetes.
 
@@ -217,7 +218,19 @@ Make sure you understand how to set up the Horizontal Pod Autoscaler (HPA) for
 scaling based on load and ingress configuration for accessing the application
 including host and paths.
 
-## Exercise 1: Add pre-commit Hooks
+# 3. Exercises
+
+## 3.0 Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+6. Ensure all tests pass and code quality checks are successful
+7. Merge
+
+## 3.1 Add pre-commit Hooks
 1. Open `.pre-commit-config.yaml`
 2. Add a new hook to check:
    * if we try to commit large files
@@ -227,9 +240,8 @@ including host and paths.
    * To make sure we do not commit secrets using
    * To check code style
 
-
-
-## Exercise 2: Add a New Endpoint
+  
+## 3.2 Add a New Endpoint
 
 1. Open `app/main.py`
 2. Add a new endpoint to create an item:
@@ -250,7 +262,7 @@ async def create_item(name: str, description: str):
 4. Run tests to verify
 
 
-## Exercise 3: Add a CI Pipeline
+## 3.3 Add a CI Pipeline
 
 1. Open `.github/workflows/ci-cd.yml`
 2. Add a step to lint the code using Ruff
@@ -258,7 +270,7 @@ async def create_item(name: str, description: str):
 4. Add a step to build the Docker image if tests pass. If we do a release, tag the image appropriately (with its version and the tag 'latest') and push it to GitHub registry
 
 
-## Exercise 4: Deploy on a K8s "production" Cluster
+## 3.4 Deploy on a K8s "production" Cluster
 
 1. Set up a Kubernetes cluster (e.g., using Minikube or a cloud provider)
 2. Deploy the application using the Helm chart
@@ -273,35 +285,7 @@ kubectl get hpa -n default -w
 ```
 7. Note how much time it takes for the pods to scale up and down based on the load
 
-## Contributing
+## 3.5 Questions
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-6. Ensure all tests pass and code quality checks are successful
-7. Merge
-
-## Tips
-
-1. **Start Simple**: Understand each component before moving to the next
-2. **Read the Logs**: When something fails, the CI/CD logs contain valuable information
-
-# 3 Questions
-
-## Pre-commit Hooks
-1. How can pre-commit hooks improve code quality and consistency?
-2. How do you configure pre-commit hooks to run only on specific file types or directories?
-
-## Code Coverage
-1. What are the benefits of maintaining high code coverage in a project?
-2. What other metrics can be used to assess code quality besides code coverage?
-
-## CI/CD and Deployment
-1. What are some strategies for rolling back deployments in case of failures in the CI/CD pipeline?
-2. How can you set up automatic deployments in a production environment while minimizing downtime and ensuring KPOs are met?
-
-## Kubernetes and Helm
 1. The auto-scaling did not work as expected. What could be the possible reasons?
 2. How does Horizontal Pod Autoscaling (HPA) work in Kubernetes?
