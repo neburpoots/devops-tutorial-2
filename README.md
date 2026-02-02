@@ -5,7 +5,7 @@ GitOps with FastAPI
 
 # 1. Introduction 
 
-In this tutorial will use GitOps practices with FastAPI including CI/CD pipelines, code quality tools, and automated testing.
+In this tutorial, we use GitOps practices with FastAPI, including CI/CD pipelines, code quality tools, and automated testing.
 
 ## Resources
 * FastAPI
@@ -37,7 +37,7 @@ In this tutorial will use GitOps practices with FastAPI including CI/CD pipeline
 
 # 2. Tutorial 
 
-The steps of this tutorial are the following:
+The steps of this tutorial are as follows:
 - [Building REST APIs with FastAPI](#21-setting-up-the-project)
 - [Testing](#22-testing)
 - [Code Quality](#23-code-quality)
@@ -59,7 +59,7 @@ Prerequisites:
    cd fastapi-gitops-starter
    ```
 
-* Set Up Python Environment:
+* Set Up the Python Environmentt:
    
    ```bash
    # Create a virtual environment
@@ -80,14 +80,14 @@ Prerequisites:
    uvicorn app.main:app --reload
    ```
 
-* Visit http://localhost:8000 to see your API running!
+* Visit http://localhost:8000 to verify that the API is running.
 
 * Explore the API:
   - API Documentation: http://localhost:8000/GitOps-Starter/docs
   - Root endpoint: http://localhost:8000/GitOps-Starter
   - Health check: http://localhost:8000/GitOps-Starter/health
   - List items: http://localhost:8000/GitOps-Starter/api/items
-  - Get specific item: http://localhost:8000/GitOps-Starter/api/items/1
+  - Retrieve a specific item: http://localhost:8000/GitOps-Starter/api/items/1
 
 ## 2.2 Testing
 
@@ -101,7 +101,7 @@ Prerequisites:
    pytest --cov=app --cov-report=html
    ```
 
-* View the coverage report by opening `htmlcov/index.html` in your browser.
+* Open `htmlcov/index.html` in a browser to view the coverage report.
 
 ##  2.3 Code Quality
 
@@ -127,8 +127,7 @@ Prerequisites:
 
 ## 2.4 Pre-commit Hooks
 
-Pre-commit hooks automatically check your code before each commit, ensuring
-consistent code quality.
+Pre-commit hooks automatically run checks before each commit to ensure consistent code quality.
 
 * Setup Pre-commit:
 
@@ -172,7 +171,7 @@ consistent code quality.
 
 ## 2.6 Minikube Setup
 
-If you want to test the Kubernetes deployment locally, you can use Minikube.
+To test the Kubernetes deployment locally, use Minikube.
 
 * Install Minikube: Follow the instructions at the [Minikube installation guide](https://minikube.sigs.k8s.io/docs/start/).
 
@@ -213,7 +212,7 @@ This repository includes a Helm chart for deploying the application to Kubernete
    helm uninstall my-release
    ```
 
-Look at the `helm/README.md` for more details on configuration options.
+Refer to `helm/README.md` for additional configuration options.
 Make sure you understand how to set up the Horizontal Pod Autoscaler (HPA) for
 scaling based on load and ingress configuration for accessing the application
 including host and paths.
@@ -233,11 +232,11 @@ including host and paths.
 ## 3.1 Add pre-commit Hooks
 1. Open `.pre-commit-config.yaml`
 2. Add a new hook to check:
-   * if we try to commit large files
-   * To check YAML files for syntax errors (make sure to exclude helm chart files)
+   * To prevent committing large files
+   * To check YAML files for syntax errors (excluding Helm charts)
    * To sort imports in Python files
-   * To check for security issues using
-   * To make sure we do not commit secrets using
+   * To check for security issues
+   * To make sure we do not commit secrets
    * To check code style
 
   
