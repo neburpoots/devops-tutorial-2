@@ -47,7 +47,7 @@ jobs:
         uses: actions/upload-artifact@v4
         id: upload-document
         with:
-          name: ${{ steps.get-pdf-name.outputs.pdf_name }}
+          name: "2-GitOps with FastAPI.pdf"
           path: ${{ steps.publish-document.outputs.pdf }}
 
       - name: Upload README_WITH_LINKS.md
