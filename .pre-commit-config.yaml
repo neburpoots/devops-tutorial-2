@@ -1,5 +1,44 @@
 repos:
+  # --- Basic sanity checks (incl. large files + YAML) ---
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v5.0.0
+    rev: v4.6.0
     hooks:
+      # Prevent committing large files
+      - id: check-added-large-files
+        args: ["--maxkb=1024"]  # 1MB; change if your course expects a different threshold
+
+      # YAML syntax check (exclude Helm charts)
+      - id: check-yaml
+        exclude: ^helm/
+
+      # Optional but commonly expected hygiene hooks
+      - id: end-of-file-fixer
       - id: trailing-whitespace
+      - id: check-merge-conflict
+
+  # --- Ruff: code style + import sorting ---
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.6.9
+    hooks:
+      # Lint (style, errors, etc.)
+      - id: ruff
+        args: ["--fix"]
+
+      # Format (Ruff formatter)
+      - id: ruff-format
+
+      - id: ruff
+        name: ruff (sort imports)
+        args: ["--select=I", "--fix"]
+
+  # --- Security issues in Python code ---
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.7.9
+    hooks:
+      - id: bandit
+        args: ["-q", "-r", "app"]
+
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.18.4
+    hooks:
+      - id: gitleaks
